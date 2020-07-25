@@ -5,7 +5,7 @@
 ! Much of this tutorial is based off 
 ! "An introduction to programming in Fortran 90" from Durham univeristy.
 ! Unfortunately I can no longer find this on the web.
-! Some fo the later examples use "Advanced Fortran 90/95 Programming" which is
+! Some of the later examples use "Advanced Fortran 90/95 Programming" which is
 ! also from Durham univeristy and at the time of writing is available via
 ! http://www-users.york.ac.uk/~mijp1/teaching/2nd_year_Comp_Lab/guides/AdvancedFortran.pdf
 
@@ -13,7 +13,7 @@
 ! http://pages.mtu.edu/~shene/COURSES/cs201/NOTES/F90-Subprograms.pdf
 
 ! When following this tutorial, start from the main program and come back up
-! To the 2 MODULES and their procedures when appropriate
+! To the MODULES and their procedures when appropriate
 
 MODULE myconstants
 IMPLICIT NONE
@@ -79,6 +79,47 @@ ENDMODULE myprocedures
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+! Here we'll demonstrate Object Orientated program in Fortan 2003.
+! Its essentially boils down to: 
+! a) Define a module with a "type" (object) in it as well as procedures you want the object to use
+! b) Point to those procedures IN your type
+! c) Declare the type as "class" in your procedures with intent in
+! d) Set the "result" of functions to the name of the "pointer" within the type
+
+! Below is an example shamelessly stolen from: http://fortranwiki.org/fortran/show/Object-oriented+programming
+
+MODULE class_Circle
+	IMPLICIT NONE
+	PRIVATE
+	REAL :: pi = 3.1415926535897931d0 ! Class-wide private constant
+
+	TYPE, PUBLIC :: Circle ! define a type
+		REAL :: radius
+	CONTAINS ! instead of defining functions, point to functiosn within this module
+		PROCEDURE :: area => circle_area ! "area" and "pr" are now "type-bound" functions
+		PROCEDURE :: pr => circle_print ! this is basically the only extra step compared with classes in C
+	END TYPE Circle
+
+CONTAINS
+
+	FUNCTION circle_area(this) RESULT(area) 
+	! function we point to above, result is the type-bound function defined above
+		CLASS(Circle), INTENT(IN) :: this ! declare that a "CLASS" is going in
+		REAL :: area
+		area = pi * this%radius**2 ! our incoming class has attributes such as "radius"
+	END FUNCTION circle_area
+
+	SUBROUTINE circle_print(this)
+		CLASS(Circle), INTENT(IN) :: this
+		REAL :: area
+		area = this%area()  ! Call the type-bound function
+		PRINT *, 'Circle: r = ', this%radius, ' area = ', area
+
+	END SUBROUTINE circle_print
+
+END MODULE class_Circle
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 PROGRAM fortran_sample
 USE myprocedures, sensiblename => stupidname
@@ -86,11 +127,12 @@ USE myprocedures, sensiblename => stupidname
 ! When I imported it, I renamed the variable "stupidname" to "sensiblename".
 ! This means I can declare another variable called "stupidname" below if I
 ! wanted to.
+USE class_Circle
 
 IMPLICIT NONE
 
 INTEGER :: newans, i, j, N, stride
-REAL :: a, newrenum, newpi, start, finish, start2, finish2
+REAL :: a, newrenum, newpi, start, finish, start2, finish2, areacirc
 DOUBLE PRECISION :: b
 INTEGER, PARAMETER :: ans = 42, num=4, nloop=10000
 INTEGER(KIND=num) :: my_precision ! can fix precision
@@ -116,6 +158,7 @@ TYPE :: book ! define the type and components
   REAL :: price
 END TYPE book
 TYPE (book) :: strangest_man, hitchhikers ! define a variable of this type
+TYPE (Circle) :: acircle ! belongs to a class
 ! pointers, probably wont need this for most applications. Example later.
 REAL, POINTER :: mypoint
 REAL, TARGET :: mytarget1, mytarget2
@@ -357,6 +400,16 @@ PRINT *,
 
 
 
+PRINT *, "*** CLASSES (Fortran 2003) ***"
+acircle =  Circle(1.5)
+CALL acircle%pr ! print
+areacirc = acircle%area() !type-bound function area has no arguments
+PRINT *, areacirc
+PRINT *, 
+
+
+
+
 PRINT *, "*** POINTERS ***"
 mypoint => mytarget1 ! point to first target
 mypoint = 1.0
@@ -378,12 +431,12 @@ PRINT *,
 CONTAINS
 
   ! We could have put our 2 procedures here, and not inside the module.
-  ! Careful to consider the scope of variables if you do this, as 
+  ! Be careful to consider the scope of variables if you do this, as 
   ! it allows for global variables between procedures and the main program.
   ! Use this oppourtunity to demonstrate a recursive function.
-  ! Can write a factorial funciton that calls itself
+  ! Can write a factorial function that calls itself
   ! The use of "RESULT(...)" allows us to name the return value of the function
-  ! To something different than the function name itself.
+  ! to something different than the function name itself.
   ! This must be done for recursion, but can also be used with normal functions.
 
 	RECURSIVE FUNCTION recfactorial(n) RESULT(res)
